@@ -1,0 +1,59 @@
+{
+  "name": "chm-viewer",
+  "displayName": "CHM Viewer",
+  "description": "Read and browse Microsoft Compiled HTML Help (.chm) files directly in VS Code",
+  "version": "0.1.0",
+  "publisher": "lxvs",
+  "repository": "https://github.com/lxvs/chm-viewer",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.140.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "chmViewer.editor",
+        "displayName": "CHM Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.chm"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "chmViewer.openFile",
+        "title": "Open CHM File",
+        "category": "CHM Viewer"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "node build.mjs --production",
+    "compile": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "pretest": "npm run compile",
+    "test": "node test-chm.mjs",
+    "package": "npx vsce package"
+  },
+  "dependencies": {
+    "chmlib-ts": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.140.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.3.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
