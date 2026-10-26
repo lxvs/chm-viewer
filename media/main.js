@@ -213,13 +213,44 @@
         document.getElementById('content-iframe').style.display = 'block';
     }
 
+    function resetContentFrame() {
+        const frame = document.createElement('iframe');
+        frame.id = 'content-iframe';
+        frame.setAttribute('sandbox', 'allow-same-origin allow-popups');
+        frame.style.display = 'none';
+
+        const oldFrame = document.getElementById('content-iframe');
+        if (oldFrame) {
+            oldFrame.replaceWith(frame);
+        } else {
+            document.getElementById('content-frame').appendChild(frame);
+        }
+        return frame;
+    }
+
+    function getContentFrameDocument() {
+        const frame = document.getElementById('content-iframe');
+        if (!frame) {
+            return null;
+        }
+        try {
+            return frame.contentDocument || frame.contentWindow.document || null;
+        } catch {
+            const fresh = resetContentFrame();
+            try {
+                return fresh.contentDocument || fresh.contentWindow.document || null;
+            } catch {
+                return null;
+            }
+        }
+    }
+
     // Load HTML content into iframe. Returns false (after showing an error)
     // if the content frame cannot be written, so the caller can avoid
     // resolving the loading state.
     function loadHtmlIntoIframe(html, path) {
         try {
-            const iframe = document.getElementById('content-iframe');
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const iframeDoc = getContentFrameDocument();
             if (!iframeDoc) {
                 throw new Error('content frame is not accessible');
             }
@@ -249,13 +280,42 @@
         }
     }
 
+    function isExternalHref(href) {
+        return /^(?:https?:)?\/\//i.test(href) || /^[a-z][a-z0-9+.-]*:/i.test(href);
+    }
+
+    function getOpenableExternalUrl(href) {
+        if (/^https?:\/\//i.test(href)) {
+            return href;
+        }
+        if (/^\/\//.test(href)) {
+            return 'https:' + href;
+        }
+        if (/^mailto:/i.test(href)) {
+            return href;
+        }
+        return null;
+    }
+
     function processLinks(doc, basePath) {
         const links = doc.querySelectorAll('a[href]');
         links.forEach((link) => {
             const href = link.getAttribute('href');
-            if (!href || href.startsWith('http') || href.startsWith('mailto:')) {
+            if (!href) {
                 return;
             }
+
+            if (isExternalHref(href)) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = getOpenableExternalUrl(href);
+                    if (url) {
+                        vscode.postMessage({ type: 'openExternal', url: url });
+                    }
+                });
+                return;
+            }
+
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const resolvedPath = resolvePath(href, basePath);
@@ -452,8 +512,10 @@
             return textContent;
         };
 
-        const iframe = document.getElementById('content-iframe');
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const iframeDoc = getContentFrameDocument();
+        if (!iframeDoc) {
+            return;
+        }
 
         // Update images
         iframeDoc
@@ -489,8 +551,10 @@
 
     function handleFileNotFound(message) {
         const path = message.path;
-        const iframe = document.getElementById('content-iframe');
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const iframeDoc = getContentFrameDocument();
+        if (!iframeDoc) {
+            return;
+        }
 
         // Remove broken image references and show alt text
         iframeDoc

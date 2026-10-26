@@ -68,6 +68,17 @@ export class ChmEditorProvider implements vscode.CustomReadonlyEditorProvider<Ch
                         }
                         break;
                     }
+                    case 'openExternal': {
+                        if (!isOpenableExternalUrl(message.url)) {
+                            break;
+                        }
+                        try {
+                            await vscode.env.openExternal(vscode.Uri.parse(message.url));
+                        } catch (error) {
+                            console.error('chm-viewer: failed to open external link', message.url, error);
+                        }
+                        break;
+                    }
                 }
             } catch (error) {
                 console.error('chm-viewer: failed to serve webview request', message, error);
@@ -315,6 +326,10 @@ export class ChmEditorProvider implements vscode.CustomReadonlyEditorProvider<Ch
 </body>
 </html>`;
     }
+}
+
+function isOpenableExternalUrl(url: unknown): url is string {
+    return typeof url === 'string' && /^(https?:\/\/|mailto:)/i.test(url);
 }
 
 function getNonce(): string {
